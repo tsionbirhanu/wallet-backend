@@ -2,6 +2,10 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const pool = require('../db/pool');
 
+function normalizePhoneNumber(phoneNumber) {
+  return String(phoneNumber || '').replace(/[^\d]/g, '');
+}
+
 function signToken(payload) {
   if (!process.env.JWT_SECRET) {
     throw new Error('JWT_SECRET is required');
@@ -10,10 +14,11 @@ function signToken(payload) {
   return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1d' });
 }
 
-async function loginAdmin({ email, password }) {
+async function loginAdmin({ phone_number, password }) {
+  const normalizedPhoneNumber = normalizePhoneNumber(phone_number);
   const result = await pool.query(
-    'SELECT id, full_name, email, password_hash, role FROM admins WHERE email = $1',
-    [email]
+    'SELECT id, full_name, email, phone_number, password_hash, role FROM admins WHERE phone_number = $1',
+    [normalizedPhoneNumber]
   );
 
   const admin = result.rows[0];
@@ -41,6 +46,7 @@ async function loginAdmin({ email, password }) {
     admin: {
       id: admin.id,
       email: admin.email,
+      phone_number: admin.phone_number,
       full_name: admin.full_name,
       role: admin.role,
     },

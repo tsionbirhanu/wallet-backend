@@ -10,7 +10,7 @@ router.post(
   '/admin/login',
   authRateLimiter,
   [
-    body('email').isEmail().withMessage('email must be a valid email address').normalizeEmail(),
+    body('phone_number').isString().trim().notEmpty().withMessage('phone_number is required'),
     body('password').isString().notEmpty().withMessage('password is required'),
   ],
   handleValidationErrors,

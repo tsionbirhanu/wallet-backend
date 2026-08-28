@@ -6,7 +6,7 @@ services:
     healthCheckPath: /health
     autoDeploy: true
     dockerfilePath: ./Dockerfile
-    dockerCommand: /bin/sh -c "npm run migrate && npm run seed && npm start"
+    dockerCommand: /bin/sh -c "npm run migrate && npm start"
     envVars:
       - key: NODE_ENV
         value: production
@@ -16,7 +16,13 @@ services:
         sync: false
       - key: JWT_SECRET
         generateValue: true
+      - key: CORS_ORIGIN
+        sync: false
       - key: SMS_PROVIDER
-        value: mock
+        sync: false
+      - key: SMSETHIOPIA_API_KEY
+        sync: false
       - key: PUSH_PROVIDER
-        value: mock
+        sync: false
+      - key: FIREBASE_SERVICE_ACCOUNT_JSON
+        sync: false

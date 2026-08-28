@@ -6,7 +6,7 @@ async function adminLogin(req, res, next) {
     const body = await authService.loginAdmin(req.body);
 
     if (!body) {
-      return errorResponse(res, 401, 'INVALID_CREDENTIALS', 'Invalid email or password');
+      return errorResponse(res, 401, 'INVALID_CREDENTIALS', 'Invalid phone number or password');
     }
 
     return res.json(body);

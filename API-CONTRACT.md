@@ -143,10 +143,10 @@ Request body:
 ```json
 {
   "type": "object",
-  "required": ["phone_number", "pin"],
+  "required": ["phone_number", "password"],
   "properties": {
     "phone_number": { "type": "string" },
-    "pin": { "type": "string", "pattern": "^\\d{4,6}$" }
+    "password": { "type": "string" }
   }
 }
 ```
@@ -167,7 +167,9 @@ Response body:
       "properties": {
         "id": { "type": "string" },
         "phone_number": { "type": "string" },
-        "full_name": { "type": "string" }
+        "email": { "type": "string" },
+        "full_name": { "type": "string" },
+        "role": { "type": "string" }
       }
     }
   }
@@ -725,7 +727,8 @@ Possible error codes:
 
 ## POST /customers/:id/withdraw/request-otp
 
-Creates a withdrawal OTP for the customer.
+Creates a withdrawal OTP for the customer. The OTP is bound to this requested
+amount and cannot confirm a different withdrawal amount.
 
 Auth: admin
 
@@ -762,9 +765,10 @@ Response body:
   "properties": {
     "otp": {
       "type": "object",
-      "required": ["purpose", "expires_at"],
+      "required": ["purpose", "amount", "expires_at"],
       "properties": {
         "purpose": { "type": "string", "enum": ["WITHDRAWAL"] },
+        "amount": { "type": "string", "pattern": "^\\d+\\.\\d{2}$" },
         "expires_at": { "type": "string", "format": "date-time" }
       }
     }
@@ -786,7 +790,7 @@ Possible error codes:
 
 ## POST /customers/:id/withdraw/confirm
 
-Verifies the withdrawal OTP, creates a successful withdrawal transaction, and decreases the customer's wallet balance.
+Verifies the withdrawal OTP, creates a successful withdrawal transaction, and decreases the customer's wallet balance. The `amount` must match the amount used when the OTP was requested.
 
 Auth: admin
 

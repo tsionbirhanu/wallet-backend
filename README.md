@@ -24,7 +24,7 @@ cp .env.example .env
 3. Set environment variables:
 
 ```env
-DATABASE_URL=postgresql://user:password@host/database?sslmode=require
+DATABASE_URL=postgresql://user:password@host/database?sslmode=verify-full
 JWT_SECRET=replace-me-with-a-long-random-secret
 PORT=4000
 ```
@@ -46,9 +46,12 @@ npm run seed
 The seed creates:
 
 ```text
-email: admin@test.com
+phone: +251978164708
 password: Admin123!
 ```
+
+`npm run seed` is for local/demo use only. In production it is skipped unless
+`ALLOW_DEMO_SEED=true` is set.
 
 ## Development
 
@@ -68,7 +71,7 @@ Request:
 
 ```json
 {
-  "email": "admin@test.com",
+  "phone_number": "+251978164708",
   "password": "Admin123!"
 }
 ```
@@ -120,7 +123,7 @@ This endpoint hashes the PIN with bcrypt and never returns `pin` or `pin_hash`.
 ```bash
 curl -s -X POST http://localhost:4000/admin/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@test.com","password":"Admin123!"}'
+  -d '{"phone_number":"+251978164708","password":"Admin123!"}'
 ```
 
 Copy the returned `token` value into `ADMIN_TOKEN`.
@@ -185,7 +188,7 @@ curl -s -X PATCH http://localhost:4000/customers/CUSTOMER_ID/status \
 
 Deposits and confirmed withdrawals run inside a single PostgreSQL transaction. Each balance-changing operation locks the customer's wallet row with `SELECT ... FOR UPDATE` before reading and updating the balance, so concurrent requests cannot both spend or overwrite the same starting balance.
 
-Withdrawal OTP request checks the current balance only for early admin feedback. Withdrawal confirmation performs the authoritative balance check again after locking the wallet row, because another deposit or withdrawal may have changed the balance after the OTP was issued.
+Withdrawal OTP request checks the current balance only for early admin feedback. Withdrawal confirmation performs the authoritative balance check again after locking the wallet row, because another deposit or withdrawal may have changed the balance after the OTP was issued. Withdrawal OTPs are also bound to the requested amount, so an OTP issued for one amount cannot confirm a different amount.
 
 External side effects are intentionally outside the database transaction. SMS and push notifications are sent only after the transaction commits, so a failed provider call cannot roll back a valid ledger update and a rolled-back ledger update cannot send a success message.
 
@@ -222,6 +225,25 @@ Use `/me/register-device-token` from the Flutter app after login:
 ```
 
 Deposit and withdrawal success flows call `sendPush(customerId, title, body)` after the database transaction commits.
+
+Current production status:
+
+- Firebase push notification is working. A successful deposit push logged `provider=firebase`, `sent=true`, `success=1`, and `failure=0`.
+- SMS Ethiopia is the real SMS provider when `SMS_PROVIDER=smsethiopia` and `SMSETHIOPIA_API_KEY` are set. A real SMS send should log `provider=smsethiopia` with `sent=true`; if logs show `[MOCK SMS]`, the service is still in mock mode.
+
+## Frontend CORS
+
+Set the deployed admin/frontend origin so browsers can call the API:
+
+```env
+CORS_ORIGIN=https://your-frontend-domain.com
+```
+
+For multiple frontends, use comma-separated origins:
+
+```env
+CORS_ORIGIN=https://admin.example.com,http://localhost:3000
+```
 
 ## SMS Ethiopia Setup
 
@@ -263,3 +285,19 @@ src/services/sms.service.js
 ```
 
 The SMS Ethiopia integration uses `POST /api/v2/sms/send`, the `KEY` header, and a JSON body containing `msisdn`, `text`, and `messageType`.
+
+## Render Environment
+
+Set these on Render for the deployed backend:
+
+```env
+DATABASE_URL=postgresql://user:password@host/database?sslmode=verify-full
+CORS_ORIGIN=https://your-frontend-domain.com
+SMS_PROVIDER=smsethiopia
+SMSETHIOPIA_API_KEY=your_api_key_from_sms_ethiopia
+SMSETHIOPIA_SENDER_ID=your_approved_sender_or_campaign
+SMSETHIOPIA_BASE_URL=https://smsethiopia.com/api
+SMSETHIOPIA_API_VERSION=v2
+PUSH_PROVIDER=firebase
+FIREBASE_SERVICE_ACCOUNT_JSON={"type":"service_account","project_id":"..."}
+```

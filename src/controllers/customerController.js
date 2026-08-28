@@ -164,7 +164,7 @@ async function confirmWithdrawal(req, res, next) {
     });
 
     if (result.outcome === 'invalid_otp') {
-      return errorResponse(res, 400, 'OTP_INVALID', 'Invalid or expired code.');
+      return errorResponse(res, 400, 'OTP_INVALID', 'Invalid, expired, or amount-mismatched code.');
     }
 
     return moneyMovementResponse(res, result);

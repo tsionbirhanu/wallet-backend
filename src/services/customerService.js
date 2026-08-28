@@ -646,11 +646,11 @@ async function requestWithdrawalOtp({ adminId, customerId, amount }) {
 
     const otpResult = await client.query(
       `
-        INSERT INTO otp_codes (customer_id, code, purpose, expires_at)
-        VALUES ($1, $2, 'WITHDRAWAL', NOW() + ($3::text || ' minutes')::interval)
-        RETURNING purpose, expires_at
+        INSERT INTO otp_codes (customer_id, code, purpose, amount, expires_at)
+        VALUES ($1, $2, 'WITHDRAWAL', $3, NOW() + ($4::text || ' minutes')::interval)
+        RETURNING purpose, amount, expires_at
       `,
-      [customerId, code, OTP_TTL_MINUTES]
+      [customerId, code, amount, OTP_TTL_MINUTES]
     );
 
     await writeAuditLog(client, {
@@ -672,6 +672,7 @@ async function requestWithdrawalOtp({ adminId, customerId, amount }) {
       body: {
         otp: {
           purpose: otpResult.rows[0].purpose,
+          amount: formatMoney(otpResult.rows[0].amount),
           expires_at: formatTimestamp(otpResult.rows[0].expires_at),
         },
       },
@@ -719,11 +720,12 @@ async function confirmWithdrawal({ adminId, customerId, code, amount }) {
           AND verified = false
           AND expires_at > NOW()
           AND code = $2
+          AND amount = $3::numeric(18,2)
         ORDER BY created_at DESC
         LIMIT 1
         FOR UPDATE
       `,
-      [customerId, code]
+      [customerId, code, amount]
     );
 
     const otp = otpResult.rows[0];

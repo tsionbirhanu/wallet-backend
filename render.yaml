@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: wallet-backend
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    autoDeploy: true
+    dockerfilePath: ./Dockerfile
+    dockerCommand: /bin/sh -c "npm run migrate && npm run seed && npm start"
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4000
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SMS_PROVIDER
+        value: mock
+      - key: PUSH_PROVIDER
+        value: mock
